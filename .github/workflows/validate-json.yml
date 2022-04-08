@@ -2,10 +2,10 @@ name: Validate JSON
 on:
   push:
     paths:
-      - web/atlas.json
+      - docs/atlas.json
   pull_request:
     paths:
-      - web/atlas.json
+      - docs/atlas.json
 jobs:
   Validate-JSON:
     runs-on: ubuntu-latest
@@ -15,4 +15,4 @@ jobs:
       - name: Validate JSON
         run: |
           chmod +x ${{ github.workspace }}/tools/validate_json.py
-          python3 ${{ github.workspace }}/tools/validate_json.py ${{ github.workspace }}/web/atlas.json
+          python3 ${{ github.workspace }}/tools/validate_json.py ${{ github.workspace }}/docs/atlas.json
