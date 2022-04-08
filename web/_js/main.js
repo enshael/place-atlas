@@ -47,7 +47,7 @@ var lastPosition = [0, 0];
 var viewportSize = [0, 0];
 
 document.getElementById("donateButton").addEventListener("click", function(e){
-	document.getElementById("bitcoinQR").src = "./_img/bitcoinQR.png?from=index";
+//	document.getElementById("bitcoinQR").src = "./_img/bitcoinQR.png?from=index";
 	document.getElementById("donateOverlay").style.display = "flex";
 });
 
@@ -94,6 +94,8 @@ async function init(){
 		// a must be equal to b
 		return 0;
 	});
+	//TEMP FOR TIME TRAVEL
+	atlasBackup = atlas;
 	
 
 	//console.log(document.documentElement.clientWidth, document.documentElement.clientHeight);
@@ -137,6 +139,35 @@ async function init(){
 		if(initOverlap){
 			initOverlap();
 		}
+	} else if(mode.startsWith("diff")){
+		wrapper.className = wrapper.className.replace(/ drawMode/g, "");
+		try {
+			let liveResp = await fetch("https://place-atlas.stefanocoding.me/atlas.json");
+			let liveJson = await liveResp.json();
+			let liveAtlasReduced = liveJson.reduce(function(a, c) {
+				a[c.id] = c;
+				return a;
+			},{});
+			if(mode.endsWith("only")){
+				atlas = atlas.filter(function(entry) {
+					return JSON.stringify(entry) !== JSON.stringify(liveAtlasReduced[entry.id]);
+				});
+			}
+			atlas = atlas.map(function(entry) {
+				if(liveAtlasReduced[entry.id] === undefined){
+					entry.diff = "add";
+				}else if(JSON.stringify(entry) !== JSON.stringify(liveAtlasReduced[entry.id])){
+					entry.diff = "edit";
+				}
+				return entry;
+			});
+			//TEMP FOR TIME TRAVEL
+			atlasBackup = atlas;
+		} catch (error) {
+			console.log("Diff mode failed to load, reverting to normal view - " + error);
+		} finally {
+			initView();
+		}
 	}
 	
 	function changeOverlapMode(){
@@ -164,7 +195,7 @@ async function init(){
 
 	const toggleMode = document.getElementById("toggleMode");
 	toggleMode.onclick = changeOverlapMode;
-	toggleMode.innerHTML = modeMap[mode];
+	toggleMode.innerHTML = modeMap[mode] || "Overlap";
 
 	document.getElementById("loading").style.display = "none";
 
@@ -273,14 +304,23 @@ async function init(){
 		initialPinchZoom = zoom;
 		
 		lastPosition = [x, y];
-		
-		if(e.deltaY > 0){
 
-			zoom = zoom / 2;
-			
-		} else if(e.deltaY < 0){
-			
-			zoom = zoom * 2;
+		// Check if we are zooming by pixels
+		// https://developer.mozilla.org/en-US/docs/Web/API/WheelEvent/deltaMode
+		if (e.deltaMode === 0) {
+			// Scale the pixel delta by the current zoom factor
+			// We want to zoom faster when closer, and slower when further
+			// This creates a smoother experience
+			zoom -= e.deltaY * (0.001 * zoom);
+		} else {
+			if(e.deltaY > 0){
+	
+				zoom = zoom / 2;
+				
+			} else if(e.deltaY < 0){
+				
+				zoom = zoom * 2;
+			}
 		}
 
 		zoom = Math.max(minZoom, Math.min(maxZoom, zoom));
