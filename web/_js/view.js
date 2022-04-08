@@ -114,8 +114,23 @@ function renderBackground(atlas){
 
 		backgroundContext.closePath();
 
-		backgroundContext.strokeStyle = "rgba(255, 255, 255, 0.8)";
+		var bgStrokeStyle;
+		switch (atlas[i].diff) {
+			case "add":
+				bgStrokeStyle = "rgba(0, 255, 0, 1)";
+				backgroundContext.lineWidth = 2;
+				break;
+			case "edit":
+				bgStrokeStyle = "rgba(255, 255, 0, 1)";
+				backgroundContext.lineWidth = 2;
+				break;
+			default:
+				bgStrokeStyle = "rgba(255, 255, 255, 0.8)";
+				break;
+		}
+		backgroundContext.strokeStyle = bgStrokeStyle;
 		backgroundContext.stroke();
+		backgroundContext.lineWidth = 1;
 	}
 }
 
@@ -154,6 +169,11 @@ function initView(){
 	render();
 
 	buildObjectsList(null, null);
+
+	timeCallback = (tempAtlas) => {
+		renderBackground(tempAtlas);
+		render();
+	}
 
 	// parse linked atlas entry id from link hash
 	/*if (window.location.hash.substring(3)){
@@ -345,7 +365,9 @@ function initView(){
 				}
 
 				if(changed){
-					hovered = newHovered;
+					hovered = newHovered.sort(function(a, b){
+						return calcPolygonArea(a.path) - calcPolygonArea(b.path);
+					});
 
 					objectsContainer.innerHTML = "";
 
@@ -386,6 +408,7 @@ function initView(){
 				return (
 					   value.name.toLowerCase().indexOf(filter) !== -1
 					|| value.description.toLowerCase().indexOf(filter) !== -1
+					|| value.subreddit && value.subreddit.toLowerCase().indexOf(filter) !== -1
 				);
 			});
 			document.getElementById("atlasSize").innerHTML = "Found "+sortedAtlas.length+" entries.";
@@ -447,6 +470,11 @@ function initView(){
 					}
 						// a must be equal to b
 					return 0;
+				}
+			break;
+			case "area":
+				sortFunction = function(a, b){
+					return calcPolygonArea(b.path) - calcPolygonArea(a.path);
 				}
 			break;
 			case "relevant":
@@ -678,7 +706,19 @@ function initView(){
 
 			context.globalCompositeOperation = "source-over";
 
-			context.strokeStyle = "rgba(0, 0, 0, 1)";
+			var hoverStrokeStyle;
+			switch (hovered[i].diff) {
+				case "add":
+					hoverStrokeStyle = "rgba(0, 155, 0, 1)";
+					break;
+				case "edit":
+					hoverStrokeStyle = "rgba(155, 155, 0, 1)";
+					break;
+				default:
+					hoverStrokeStyle = "rgba(0, 0, 0, 1)";
+					break;
+			}
+			context.strokeStyle = hoverStrokeStyle;
 			//context.lineWidth = zoom;
 			context.stroke();
 		}

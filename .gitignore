@@ -14,3 +14,5 @@ combined.js
 .vscode/
 web/_site/**
 docs/_site/**
+_img/place/
+web/atlas-before-ids-migration.json
